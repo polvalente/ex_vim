@@ -39,4 +39,40 @@ defmodule ExVim.Buffer do
     end)
     |> put_in([Access.key(:row)], row + 1)
   end
+
+  @doc """
+  Erases the character at the cursor
+
+  ### Examples
+
+      iex> ExVim.Buffer.backspace(%ExVim.Buffer{content: ["asdf", "ghjk", "1234"]}, 0, 2)
+      %ExVim.Buffer{content: ["asf", "ghjk", "1234"], col: 2}
+
+      iex> ExVim.Buffer.backspace(%ExVim.Buffer{content: ["asf", "ghjk", "1234"]}, 0, 2)
+      %ExVim.Buffer{content: ["as", "ghjk", "1234"], col: 1}
+
+      iex> ExVim.Buffer.backspace(%ExVim.Buffer{content: ["as", "ghjk", "1234"]}, 0, 1)
+      %ExVim.Buffer{content: ["a", "ghjk", "1234"], col: 0}
+
+      iex> ExVim.Buffer.backspace(%ExVim.Buffer{content: ["a", "ghjk", "1234"]}, 0, 0)
+      %ExVim.Buffer{content: ["", "ghjk", "1234"], col: 0}
+
+      iex> ExVim.Buffer.backspace(%ExVim.Buffer{content: ["", "ghjk", "1234"]}, 0, 0)
+      %ExVim.Buffer{content: ["", "ghjk", "1234"], col: 0}
+  """
+  def backspace(buffer, row, col) do
+    buffer
+    |> update_in([Access.key(:content), Access.at(row)], fn
+      "" ->
+        ""
+
+      <<prefix::binary-size(col), _::binary-size(1), suffix::binary>> ->
+        prefix <> suffix
+    end)
+    |> then(fn buffer ->
+      max_col = String.length(Enum.at(buffer.content, row)) - 1
+
+      put_in(buffer, [Access.key(:col)], max(min(col, max_col), 0))
+    end)
+  end
 end
