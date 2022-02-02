@@ -70,9 +70,51 @@ defmodule ExVim.Buffer do
         prefix <> suffix
     end)
     |> then(fn buffer ->
-      max_col = String.length(Enum.at(buffer.content, row)) - 1
+      max_col = max_col(buffer.content, row)
 
       put_in(buffer, [Access.key(:col)], max(min(col, max_col), 0))
     end)
+  end
+
+  def direction(buffer, :up) do
+    buffer
+    |> Map.update(:row, 0, &(&1 - 1))
+    |> cursor_bounding_box()
+  end
+
+  def direction(buffer, :down) do
+    buffer
+    |> Map.update(:row, 0, &(&1 + 1))
+    |> cursor_bounding_box()
+  end
+
+  def direction(buffer, :left) do
+    buffer
+    |> Map.update(:col, 0, &(&1 - 1))
+    |> cursor_bounding_box()
+  end
+
+  def direction(buffer, :right) do
+    buffer
+    |> Map.update(:col, 0, &(&1 + 1))
+    |> cursor_bounding_box()
+  end
+
+  defp cursor_bounding_box(buffer) do
+    max_row = max(length(buffer.content) - 1, 0)
+
+    buffer
+    |> Map.put(:row, min(max(0, buffer.row), max_row))
+    |> then(fn buffer ->
+      max_col = max_col(buffer, buffer.row)
+      %{buffer | col: min(max(0, buffer.col), max_col)}
+    end)
+  end
+
+  defp max_col(buffer, row) do
+    buffer.content
+    |> Enum.at(row)
+    |> String.length()
+    |> then(&(&1 - 1))
   end
 end
