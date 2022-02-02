@@ -11,6 +11,7 @@ defmodule ExVim.App do
   @key_down Ratatouille.Constants.key(:arrow_down)
   @key_left Ratatouille.Constants.key(:arrow_left)
   @key_right Ratatouille.Constants.key(:arrow_right)
+  @enter Ratatouille.Constants.key(:enter)
 
   def update(buffer, msg) do
     case msg do
@@ -18,13 +19,37 @@ defmodule ExVim.App do
       {:event, %{key: @key_down}} -> Buffer.direction(buffer, :down)
       {:event, %{key: @key_left}} -> Buffer.direction(buffer, :left)
       {:event, %{key: @key_right}} -> Buffer.direction(buffer, :right)
+      {:event, %{key: @enter}} -> Buffer.newline(buffer, buffer.row)
       _ -> buffer
     end
   end
 
   def render(buffer) do
+    {before_cursor, at_cursor, after_cursor} = Buffer.content(buffer)
+
     view do
-      label(content: "(row, col): (#{buffer.row}, #{buffer.col})")
+      panel title: Buffer.title(buffer) do
+        label(
+          content:
+            before_cursor <>
+              "|" <>
+              at_cursor <>
+              after_cursor
+        )
+
+        # label do
+        #   text(content: "a123\ns4\nd")
+
+        #   text(
+        #
+        #       do: [content: "7", attributes: [:underline]],
+        #       else: [content: "7"]
+        #     )
+        #   )
+
+        #   text(content: "89\nf245667")
+        # end
+      end
     end
   end
 end

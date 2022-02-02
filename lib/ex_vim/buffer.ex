@@ -35,7 +35,7 @@ defmodule ExVim.Buffer do
   def newline(buffer, row) do
     buffer
     |> update_in([Access.key(:content)], fn content ->
-      List.insert_at(content, row, "")
+      List.insert_at(content, row + 1, "")
     end)
     |> put_in([Access.key(:row)], row + 1)
   end
@@ -76,6 +76,8 @@ defmodule ExVim.Buffer do
     end)
   end
 
+  ### Navigation
+
   def direction(buffer, :up) do
     buffer
     |> Map.update(:row, 0, &(&1 - 1))
@@ -106,7 +108,7 @@ defmodule ExVim.Buffer do
     buffer
     |> Map.put(:row, min(max(0, buffer.row), max_row))
     |> then(fn buffer ->
-      max_col = max_col(buffer, buffer.row)
+      max_col = max_col(buffer, buffer.row) + 1
       %{buffer | col: min(max(0, buffer.col), max_col)}
     end)
   end
@@ -116,5 +118,30 @@ defmodule ExVim.Buffer do
     |> Enum.at(row)
     |> String.length()
     |> then(&(&1 - 1))
+  end
+
+  ### Rendering
+
+  def title(buffer) do
+    name = buffer.name || "[No Name]"
+
+    name <> " - (#{buffer.row}, #{buffer.col})"
+  end
+
+  def content(buffer) do
+    {before, at} = Enum.split(buffer.content, buffer.row)
+    {at_cursor, after_cursor} = Enum.split(at, 1)
+
+    {prefix, infix} = String.split_at(Enum.at(at_cursor, 0) || "", buffer.col)
+    {at_cursor, suffix} = String.split_at(infix, 1)
+
+    before_cursor =
+      if before == [] do
+        prefix
+      else
+        Enum.join(before, "\n") <> "\n" <> prefix
+      end
+
+    {before_cursor, at_cursor, Enum.join([suffix | after_cursor], "\n")}
   end
 end
