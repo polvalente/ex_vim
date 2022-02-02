@@ -38,6 +38,7 @@ defmodule ExVim.Buffer do
       List.insert_at(content, row + 1, "")
     end)
     |> put_in([Access.key(:row)], row + 1)
+    |> put_in([Access.key(:col)], 0)
   end
 
   @doc """
@@ -66,14 +67,29 @@ defmodule ExVim.Buffer do
       "" ->
         ""
 
-      <<prefix::binary-size(col), _::binary-size(1), suffix::binary>> ->
-        prefix <> suffix
+      line ->
+        line
+        |> String.codepoints()
+        |> List.delete_at(col - 1)
+        |> Enum.join()
     end)
-    |> then(fn buffer ->
-      max_col = max_col(buffer.content, row)
+    |> Map.update(:col, 0, &(&1 - 1))
+    |> cursor_bounding_box()
+  end
 
-      put_in(buffer, [Access.key(:col)], max(min(col, max_col), 0))
+  def delete(buffer, row, col) do
+    buffer
+    |> update_in([Access.key(:content), Access.at(row)], fn
+      "" ->
+        ""
+
+      line ->
+        line
+        |> String.codepoints()
+        |> List.delete_at(col)
+        |> Enum.join()
     end)
+    |> cursor_bounding_box()
   end
 
   ### Navigation
