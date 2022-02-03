@@ -4,7 +4,7 @@ defmodule ExVim.Application do
   def start(_type, _args) do
     children = [
       {Ratatouille.Runtime.Supervisor,
-       runtime: [app: ExVim.App, quit_events: [{:key, Ratatouille.Constants.key(:ctrl_d)}]]}
+       runtime: [app: ExVim.App, quit_events: [{:key, :ctrl_d}, {:ch, :exit}]]}
     ]
 
     Supervisor.start_link(

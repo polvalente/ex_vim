@@ -22,7 +22,8 @@ defmodule ExVim.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ratatouille, "~> 0.5.1"}
+      {:ratatouille, "~> 0.5.1"},
+      {:nimble_parsec, "~> 1.2.1"}
     ]
   end
 end

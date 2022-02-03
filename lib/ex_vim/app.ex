@@ -20,14 +20,28 @@ defmodule ExVim.App do
 
   def update(state, msg) do
     case state.mode do
-      :normal -> normal_mode(state, msg)
-      :normal_command -> normal_command_mode(state, msg)
-      :insert -> insert_mode(state, msg)
+      :normal ->
+        normal_mode(state, msg)
+
+      :normal_command ->
+        normal_command_mode(state, msg)
+
+      :insert ->
+        insert_mode(state, msg)
+
+      :exit ->
+        shutdown(state)
     end
   end
 
   defp normal_mode(state, msg) do
     case msg do
+      {:event, %{ch: ?:}} ->
+        %{state | mode: :normal_command, input: ":"}
+
+      {:event, %{ch: ?d}} ->
+        %{state | mode: :normal_command, input: "d"}
+
       {:event, %{ch: i}} when i in [?i, ?I] ->
         %{state | mode: :insert}
 
@@ -80,8 +94,27 @@ defmodule ExVim.App do
     end
   end
 
-  defp normal_command_mode(state, _msg) do
-    state
+  defp normal_command_mode(state, msg) do
+    case msg do
+      {:event, %{key: @esc}} ->
+        %{state | mode: :normal, input: ""}
+
+      {:event, %{ch: ?d}} when state.input == "d" ->
+        state
+        |> State.current_buffer()
+        |> then(&Buffer.delete_row(&1, &1.row))
+        |> then(&State.update_current_buffer(state, &1))
+        |> then(&%{&1 | mode: :normal, input: ""})
+
+      {:event, %{key: @enter}} ->
+        State.execute_input(state)
+
+      {:event, %{ch: char}} ->
+        State.append_input(state, <<char::utf8>>)
+
+      _ ->
+        state
+    end
   end
 
   defp insert_mode(state, msg) do
@@ -148,8 +181,14 @@ defmodule ExVim.App do
 
     cursor = if(rem(System.system_time(:millisecond), 1000) > 500, do: "|", else: " ")
 
+    mode =
+      case state.mode do
+        :insert -> "INSERT"
+        _ -> "NORMAL"
+      end
+
     view do
-      panel title: String.upcase("[#{state.mode}] - ") <> Buffer.title(buffer) do
+      panel title: "[#{mode}] - " <> Buffer.title(buffer) do
         label(
           content:
             before_cursor <>
@@ -159,9 +198,19 @@ defmodule ExVim.App do
         )
       end
 
-      if state.mode == :normal_command do
-        label(content: state.input)
-      end
+      label(content: state.input)
     end
+  end
+
+  defp shutdown(state) do
+    [{_, sup_pid, _, _}] = Supervisor.which_children(ExVim.Supervisor)
+
+    pid =
+      Supervisor.which_children(sup_pid)
+      |> Enum.find(&match?({Ratatouille.Runtime, _, _, _}, &1))
+      |> elem(1)
+
+    send(pid, {:event, %{ch: :exit}})
+    state
   end
 end

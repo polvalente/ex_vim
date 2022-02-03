@@ -41,6 +41,28 @@ defmodule ExVim.Buffer do
     |> put_in([Access.key(:col)], 0)
   end
 
+  def delete_row(buffer, row) do
+    %{buffer | content: List.delete_at(buffer.content, row), row: if(row == 1, do: 0, else: row)}
+  end
+
+  def find_and_replace_single(buffer, to_find, to_replace, opts) do
+    find_and_replace(buffer, to_find, to_replace, opts, buffer.row)
+  end
+
+  def find_and_replace_global(buffer, to_find, to_replace, opts) do
+    for row <- 0..max(length(buffer.content) - 1, 0), reduce: buffer do
+      buffer -> find_and_replace(buffer, to_find, to_replace, opts, row)
+    end
+  end
+
+  defp find_and_replace(buffer, to_find, to_replace, opts, row) do
+    update_in(
+      buffer,
+      [Access.key(:content), Access.at(row)],
+      &String.replace(&1, to_find, to_replace, opts)
+    )
+  end
+
   @doc """
   Erases the character at the cursor
 
