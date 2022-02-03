@@ -17,6 +17,7 @@ defmodule ExVim.App do
   @backspace Ratatouille.Constants.key(:backspace)
   @backspace2 Ratatouille.Constants.key(:backspace2)
   @delete Ratatouille.Constants.key(:delete)
+  @space Ratatouille.Constants.key(:space)
 
   def update(state, msg) do
     case state.mode do
@@ -109,6 +110,9 @@ defmodule ExVim.App do
       {:event, %{key: @enter}} ->
         State.execute_input(state)
 
+      {:event, %{key: @space}} ->
+        State.append_input(state, " ")
+
       {:event, %{ch: char}} ->
         State.append_input(state, <<char::utf8>>)
 
@@ -164,6 +168,12 @@ defmodule ExVim.App do
         |> then(&Buffer.newline(&1, &1.row))
         |> then(&State.update_current_buffer(state, &1))
 
+      {:event, %{key: @space}} ->
+        state
+        |> State.current_buffer()
+        |> then(&Buffer.add_substring(&1, &1.row, &1.col, " "))
+        |> then(&State.update_current_buffer(state, &1))
+
       {:event, %{ch: char}} ->
         state
         |> State.current_buffer()
@@ -202,15 +212,8 @@ defmodule ExVim.App do
     end
   end
 
-  defp shutdown(state) do
-    [{_, sup_pid, _, _}] = Supervisor.which_children(ExVim.Supervisor)
-
-    pid =
-      Supervisor.which_children(sup_pid)
-      |> Enum.find(&match?({Ratatouille.Runtime, _, _, _}, &1))
-      |> elem(1)
-
-    send(pid, {:event, %{ch: :exit}})
-    state
+  defp shutdown(_state) do
+    Ratatouille.Window.close()
+    System.halt()
   end
 end

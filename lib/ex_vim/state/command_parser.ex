@@ -42,14 +42,28 @@ defmodule ExVim.State.CommandParser do
     |> concat(tag(utf8_string([], min: 1), :filename))
     |> tag(:save)
 
-  save_and_exit_cmd =
-    ignore(string("wq "))
+  edit_cmd =
+    ignore(string("e "))
     |> concat(tag(utf8_string([], min: 1), :filename))
+    |> tag(:edit)
+
+  bnext_cmd =
+    ignore(string("bnext"))
+    |> tag(:bnext)
+
+  save_and_exit_cmd =
+    ignore(string("wq"))
+    |> optional(
+      ignore(string(" "))
+      |> concat(tag(utf8_string([], min: 1), :filename))
+    )
     |> tag(:save_and_exit)
 
   command =
     choice([
+      bnext_cmd,
       exit_cmd,
+      edit_cmd,
       save_cmd,
       save_and_exit_cmd,
       find_and_replace_global,
@@ -64,10 +78,16 @@ defmodule ExVim.State.CommandParser do
         {:ok, :exit}
 
       {:ok, [{:save, args}], _, _, _, _} ->
-        {:ok, {:save, Enum.at(args[:filename], 0)}}
+        {:ok, {:save, Enum.at(args[:filename] || [], 0)}}
+
+      {:ok, [{:edit, args}], _, _, _, _} ->
+        {:ok, {:edit, Enum.at(args[:filename] || [], 0)}}
+
+      {:ok, [{:bnext, _}], _, _, _, _} ->
+        {:ok, :bnext}
 
       {:ok, [{:save_and_exit, args}], _, _, _, _} ->
-        {:ok, {:save_and_exit, Enum.at(args[:filename], 0)}}
+        {:ok, {:save_and_exit, Enum.at(args[:filename] || [], 0)}}
 
       {:ok, [{:find_and_replace_global, args}], _, _, _, _} ->
         {to_find_regex, opts} =

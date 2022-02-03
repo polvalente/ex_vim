@@ -1,0 +1,1 @@
+%ExVim.State{buffers: [%ExVim.Buffer{col: 6, content: ["asdfsdasdfg"], name: "file1", row: 0}, %ExVim.Buffer{col: 0, content: [""], name: nil, row: 0}], current_buffer_index: 0, input: ":wq", mode: :normal_command}

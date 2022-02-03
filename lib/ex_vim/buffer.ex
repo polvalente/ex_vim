@@ -1,6 +1,8 @@
 defmodule ExVim.Buffer do
   defstruct name: nil, row: 0, col: 0, content: [""]
 
+  def set_name(buffer, name), do: %{buffer | name: name}
+
   @doc """
   Adds a character to the given `buffer` at index (`row`, `col`)
 
